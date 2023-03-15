@@ -166,6 +166,84 @@ de dados.
 
 -- O que são Control Files? --
 
+Cada banco de dados Oracle tem ao menos um arquivo de controle que mantém os seus metadados (em outras palavras, os
+dados sobre a estrutura física do próprio banco de dados). Entre outras coisas, ele contém o nome do banco de dados,
+quando ele foi criado e os nomes e locais de todos os arquivos de dados e arquivos de redo log. Além disso, o arquivo
+de controle mantêm as informações usadas pelo RMAN, como as configurações RMAN persistentes e os tipos de backups
+que foram executados no banco de dados.
 
+O control file é um arquivo muito crítico para a operação do banco de dados, e por isso pode (e deve) ser multiplexado
+e copiado para backup com frequência.
+
+- Para subir o banco de dados em modo MOUNT é necessário ter o control file.
+
+
+-- O que são Archives Logs? --
+
+O Oracle Database pode funcionar de dois modos: ARCHIVELOG ou NOARCHIVELOG.
+
+O modo ARCHIVELOG envia um arquivo de redo log preenchido (após o mesmo sofrer um switch automático, quando o arquivo
+é totalmente preenchido, ou quando ocorre um switch log de forma manual) para um ou mais destinos especificados e 
+podem ficar disponíveis para a recuperação do banco de dados a qualquer momento caso ocorra uma falha na mídia do
+banco de dados.
+
+Se uma unidade de disco contendo datafiles falhar, o conteúdo do banco de dados pode ser recuperado até um determinado
+ponto no tempo antes da falha.  para isto é necessário: um backup recente dos datafiles, os arquivos de redo log e
+os archive logs gerados a partir do backup.
+
+Em contrapartida, o modo NOARCHIVELOG não garante integridade do banco de dados na ocorrência de uma falha de instância
+ou de sistema. As transações que sofreram commit mas que ainda não foram gravadas nos datafiles estão disponívies apenas
+nos arquivos de redo log online. Sendo assim, a recuperação de uma falha estará limitada às entradas existentes
+atualmente nos redo logs online. Se o último backup foi realizado antes do primeiro arquivo de redo log, então não será
+possível recuperar o banco de dados, os dados gerados após este backup serão perdidos.
+
+
+-- O que são Parameter Files? --
+
+Quando uma instância de banco de dados inicia, a memória para a instância Oracle alocada a um dos dois tipos de arquivos
+de parãmetro de inicialização é aberto: um arquivo texto denominado init.ora (conhecido genericamente como init.ora ou PFILE) 
+ou um arquivo de parâmetro de servidor (conhecido como SPFILE). A instância primeiro procura um SPFILE no local padrão 
+do sistema operacional ($ORACLE_GOME/dbs no Unix, por exemplo) como spfile.<sid>.ora ou spfile.ora. Se nenhum desses 
+arquivos existir, a instância procura um PFILE com o nome init.<sid>.ora.
+
+Como alternativa, o comando startup pode especificar explicitamente um PFILE para ser usado na inicialização.
+
+Os arquivos de parâmetro de inicialização, independentemente do formato, especificam as localizações para arquivos de 
+rastreamento, arquivos de controle, arquivos de redo logs preenchidos e assim por diante. Eles também definem os limites 
+quanto aos tamanhos das várias estruturas na SGA e também quanto à quantidade de usuários que podem se conectar ao banco 
+de dados simultaneamente.
+
+Se um SPFILE estiver em uso para a instância em execução, qualquer comando alter system que altere um parâmetro de 
+inicialização poderá mudar automaticamente o parâmetro de inicialização SPFILE, alterá-lo somente para a instância em 
+execução ou ambos.
+
+Embora não seja possível espelhar um arquivo de parâmetro ou SPFILE, é possível fazer um backup de um SPFILE para um 
+arquivo init.ora e tanto o init.ora como o SPFILE para a instância Oracle devem ser copiados em backup por meio dos 
+comandos de S.O convencionais ou usando o RMAN no caso de um SPFILE.
+
+
+-- O que são Alert e Trace Log? --
+
+Quando algo dá errado, o Oracle pode gravar mensagens no log de alerta e, no caso de processos em segundo plano ou 
+sessões de usuário, nos arquivos de log de rastreamento.
+
+O arquivo de log de alerta, localizado no diretório especificado pelo parâmetro de inicialização BACKGROUND_DUMP_DEST, 
+contém mensagens de status de rotina e condições de erro. Quando o banco de dados é inicializado ou desligado, uma 
+mensagem é registrada no log de alerta, junto com uma lista de parâmetros de inicialização que são diferentes dos seus 
+valores padrão. Além disso, todos os comandos alter database e alter system emitidos pelo DBA são registrados.
+
+Os arquivos de rastreamento para os processos em segundo plano da instância Oracle igualmente estão localizados no 
+BACKGROUND_DUMP_DEST. Por exemplo, os arquivos de rastreamento para PMON E SMON contêm uma entrada para quando ocorrer 
+um erro ou quando o SMON precisar executar uma recuperação de instância;
+
+Também são criados arquivos de rastreamento para sessões individuais dos usuários ou para conexões com o banco de dados. 
+Esses trace logs estão localizados no diretório especificado pelo parâmetro USER_DUMP_DEST. Esses arquivos são criados em 
+duas situações: quando ocorre algum tipo de erro em uma sessão do usuário (como um problema de privilégio, esgotamento de 
+espaço, dentre outros); ou podem ser criados explicitamente com o comando:
+
+    ALTER SESSION SET SQL_TRACE=TRUE;
+
+A informação de rastreamento é gerada para cada instrução SQL executada pelo usuário, o que pode ser útil para se ajustar
+a instrução SQL do usuário.
 
 */
